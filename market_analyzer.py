@@ -15,7 +15,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
-import akshare as ak
+# Try to import akshare, handle case where it's not available
+try:
+    import akshare as ak
+    AKSHARE_AVAILABLE = True
+except ImportError:
+    logging.warning("akshare not available, will use alternative data sources")
+    AKSHARE_AVAILABLE = False
 import pandas as pd
 
 from config import get_config
@@ -129,8 +135,24 @@ class MarketAnalyzer:
         
         # 4. 获取北向资金（可选）
         self._get_north_flow(overview)
-        
+
         return overview
+
+    def _call_akshare_with_retry(self, fn, name: str, attempts: int = 2):
+        if not AKSHARE_AVAILABLE:
+            logger.warning(f"[大盘] akshare not available, skipping {name}")
+            return None
+        last_error: Optional[Exception] = None
+        for attempt in range(1, attempts + 1):
+            try:
+                return fn()
+            except Exception as e:
+                last_error = e
+                logger.warning(f"[大盘] {name} 获取失败 (attempt {attempt}/{attempts}): {e}")
+                if attempt < attempts:
+                    time.sleep(min(2 ** attempt, 5))
+        logger.error(f"[大盘] {name} 最终失败: {last_error}")
+        return None
     
     def _get_main_indices(self) -> List[MarketIndex]:
         """获取主要指数实时行情"""
