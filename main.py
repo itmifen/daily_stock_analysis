@@ -889,7 +889,9 @@ def main() -> int:
             
             run_with_schedule(
                 task=scheduled_task,
-                schedule_time=config.schedule_time,
+                schedule_times=config.schedule_time,
+                schedule_days=config.schedule_days,
+                schedule_timezone=config.schedule_timezone,
                 run_immediately=True  # 启动时先执行一次
             )
             return 0

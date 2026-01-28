@@ -96,7 +96,9 @@ class Config:
     
     # === 定时任务配置 ===
     schedule_enabled: bool = False            # 是否启用定时任务
-    schedule_time: str = "18:00"              # 每日推送时间（HH:MM 格式）
+    schedule_time: str = "18:00"              # 每日推送时间（HH:MM 格式，多个时间用逗号分隔）
+    schedule_days: str = "monday,tuesday,wednesday,thursday,friday"  # 执行天数，逗号分隔
+    schedule_timezone: str = "Asia/Shanghai"   # 时区设置
     market_review_enabled: bool = True        # 是否启用大盘复盘
     
     # === 流控配置（防封禁关键参数）===
@@ -196,6 +198,8 @@ class Config:
             debug=os.getenv('DEBUG', 'false').lower() == 'true',
             schedule_enabled=os.getenv('SCHEDULE_ENABLED', 'false').lower() == 'true',
             schedule_time=os.getenv('SCHEDULE_TIME', '18:00'),
+            schedule_days=os.getenv('SCHEDULE_DAYS', 'monday,tuesday,wednesday,thursday,friday'),
+            schedule_timezone=os.getenv('SCHEDULE_TIMEZONE', 'Asia/Shanghai'),
             market_review_enabled=os.getenv('MARKET_REVIEW_ENABLED', 'true').lower() == 'true',
         )
     

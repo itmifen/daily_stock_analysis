@@ -63,12 +63,14 @@ class Scheduler:
     - 优雅退出
     """
     
-    def __init__(self, schedule_time: str = "18:00"):
+    def __init__(self, schedule_times: str = "18:00", schedule_days: str = "monday,tuesday,wednesday,thursday,friday", schedule_timezone: str = "Asia/Shanghai"):
         """
         初始化调度器
         
         Args:
-            schedule_time: 每日执行时间，格式 "HH:MM"
+            schedule_times: 每日执行时间，多个时间用逗号分隔，格式 "HH:MM,HH:MM"
+            schedule_days: 执行天数，多个天用逗号分隔，格式 "monday,tuesday,wednesday,thursday,friday"
+            schedule_timezone: 时区设置，默认 Asia/Shanghai
         """
         try:
             import schedule
@@ -77,7 +79,15 @@ class Scheduler:
             logger.error("schedule 库未安装，请执行: pip install schedule")
             raise ImportError("请安装 schedule 库: pip install schedule")
         
-        self.schedule_time = schedule_time
+        # 设置时区环境变量
+        import os
+        os.environ['TZ'] = schedule_timezone
+        import time
+        time.tzset()
+        
+        self.schedule_times = schedule_times
+        self.schedule_days = schedule_days
+        self.schedule_timezone = schedule_timezone
         self.shutdown_handler = GracefulShutdown()
         self._task_callback: Optional[Callable] = None
         self._running = False
@@ -92,9 +102,16 @@ class Scheduler:
         """
         self._task_callback = task
         
-        # 设置每日定时任务
-        self.schedule.every().day.at(self.schedule_time).do(self._safe_run_task)
-        logger.info(f"已设置每日定时任务，执行时间: {self.schedule_time}")
+        # 解析多个执行时间
+        times = [t.strip() for t in self.schedule_times.split(',') if t.strip()]
+        # 解析执行天数
+        days = [d.strip() for d in self.schedule_days.split(',') if d.strip()]
+        
+        # 设置定时任务
+        for time_str in times:
+            for day in days:
+                getattr(self.schedule.every(), day).at(time_str).do(self._safe_run_task)
+            logger.info(f"已设置定时任务，执行时间: {time_str}，执行天数: {self.schedule_days}")
         
         if run_immediately:
             logger.info("立即执行一次任务...")
@@ -152,7 +169,9 @@ class Scheduler:
 
 def run_with_schedule(
     task: Callable,
-    schedule_time: str = "18:00",
+    schedule_times: str = "18:00",
+    schedule_days: str = "monday,tuesday,wednesday,thursday,friday",
+    schedule_timezone: str = "Asia/Shanghai",
     run_immediately: bool = True
 ):
     """
@@ -160,10 +179,12 @@ def run_with_schedule(
     
     Args:
         task: 要执行的任务函数
-        schedule_time: 每日执行时间
+        schedule_times: 每日执行时间，多个时间用逗号分隔
+        schedule_days: 执行天数，多个天用逗号分隔
+        schedule_timezone: 时区设置
         run_immediately: 是否立即执行一次
     """
-    scheduler = Scheduler(schedule_time=schedule_time)
+    scheduler = Scheduler(schedule_times=schedule_times, schedule_days=schedule_days, schedule_timezone=schedule_timezone)
     scheduler.set_daily_task(task, run_immediately=run_immediately)
     scheduler.run()
 
